@@ -4,11 +4,33 @@
 // Stockage : Upstash Redis (gratuit), ajouté depuis Vercel > Storage / Marketplace.
 // Sans base reliée, la fonction renvoie count: null et le badge reste caché.
 
+// La boutique Shopify (peaubio.com) appelle aussi cette fonction : on l'autorise (CORS).
+
 const WINDOW_MS = 60 * 1000;
 const PAGES = new Set(["le-kit"]);
+const ALLOWED_ORIGINS = new Set([
+  "https://peaubio.com",
+  "https://www.peaubio.com",
+  "https://iqk726-ap.myshopify.com",
+]);
+
+function allowOrigin(req, res) {
+  const origin = req.headers.origin || "";
+  if (ALLOWED_ORIGINS.has(origin) || /^https:\/\/[a-z0-9-]+\.shopifypreview\.com$/.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
+  allowOrigin(req, res);
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
   if (req.method !== "POST") {
     res.status(405).json({ error: "method_not_allowed" });
     return;
